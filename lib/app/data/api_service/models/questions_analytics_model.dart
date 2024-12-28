@@ -1,117 +1,105 @@
-// To parse this JSON data, do
-//
-//     final questionsAnalytics = questionsAnalyticsFromJson(jsonString);
-
 import 'dart:convert';
+/// totalMcqs : [{"mcqTitle":{"a":"Finding meaning and purpose in life"},"count":0},{"mcqTitle":{"b":"Managing depression or sadness"},"count":0},{"mcqTitle":{"c":"Managing anxiety and stress"},"count":0},{"mcqTitle":{"d":"Reducing overthinking and mental chatter"},"count":0},{"mcqTitle":{"e":"Personal development and self-discovery"},"count":0}]
+/// totalUser : 0
 
-QuestionsAnalytics questionsAnalyticsFromJson(String str) => QuestionsAnalytics.fromJson(json.decode(str));
-
-String questionsAnalyticsToJson(QuestionsAnalytics data) => json.encode(data.toJson());
-
-class QuestionsAnalytics {
-  List<Answer> answers;
-  List<Analytics> analytics;
-  String message;
-
-  QuestionsAnalytics({
-    required this.answers,
-    required this.analytics,
-    required this.message,
-  });
-
-  factory QuestionsAnalytics.fromJson(Map<String, dynamic> json) => QuestionsAnalytics(
-    answers: List<Answer>.from(json["answers"].map((x) => Answer.fromJson(x))),
-    analytics: List<Analytics>.from(json["analytics"].map((x) => Analytics.fromJson(x))),
-    message: json["Message"],
-  );
-
-  Map<String, dynamic> toJson() => {
-    "answers": List<dynamic>.from(answers.map((x) => x.toJson())),
-    "analytics": List<dynamic>.from(analytics.map((x) => x.toJson())),
-    "Message": message,
-  };
+QuestionsAnalyticsModel questionsAnalyticsModelFromJson(String str) => QuestionsAnalyticsModel.fromJson(json.decode(str));
+String questionsAnalyticsModelToJson(QuestionsAnalyticsModel data) => json.encode(data.toJson());
+class QuestionsAnalyticsModel {
+  QuestionsAnalyticsModel({
+      List<TotalMcqs>? totalMcqs, 
+      num? totalUser,}){
+    _totalMcqs = totalMcqs;
+    _totalUser = totalUser;
 }
 
-class Analytics {
-  int count;
-  String answer;
-  double per;
+  QuestionsAnalyticsModel.fromJson(dynamic json) {
+    if (json['totalMcqs'] != null) {
+      _totalMcqs = [];
+      json['totalMcqs'].forEach((v) {
+        _totalMcqs?.add(TotalMcqs.fromJson(v));
+      });
+    }
+    _totalUser = json['totalUser'];
+  }
+  List<TotalMcqs>? _totalMcqs;
+  num? _totalUser;
+QuestionsAnalyticsModel copyWith({  List<TotalMcqs>? totalMcqs,
+  num? totalUser,
+}) => QuestionsAnalyticsModel(  totalMcqs: totalMcqs ?? _totalMcqs,
+  totalUser: totalUser ?? _totalUser,
+);
+  List<TotalMcqs>? get totalMcqs => _totalMcqs;
+  num? get totalUser => _totalUser;
 
-  Analytics({
-    required this.count,
-    required this.answer,
-    required this.per,
-  });
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{};
+    if (_totalMcqs != null) {
+      map['totalMcqs'] = _totalMcqs?.map((v) => v.toJson()).toList();
+    }
+    map['totalUser'] = _totalUser;
+    return map;
+  }
 
-  factory Analytics.fromJson(Map<String, dynamic> json) => Analytics(
-    count: json["count"],
-    answer: json["answer"],
-    per: json["per"],
-  );
-
-  Map<String, dynamic> toJson() => {
-    "count": count,
-    "answer": answer,
-    "per": per,
-  };
 }
 
-class Answer {
-  int id;
-  int userId;
-  int questionId;
-  String mcq;
-  DateTime createdAt;
-  Users? users;
+/// mcqTitle : {"a":"Finding meaning and purpose in life"}
+/// count : 0
 
-  Answer({
-    required this.id,
-    required this.userId,
-    required this.questionId,
-    required this.mcq,
-    required this.createdAt,
-    required this.users,
-  });
-
-  factory Answer.fromJson(Map<String, dynamic> json) => Answer(
-    id: json["id"],
-    userId: json["user_id"],
-    questionId: json["question_id"],
-    mcq: json["mcq"],
-    createdAt: DateTime.parse(json["created_at"]),
-    users: json["users"] == null ? null : Users.fromJson(json["users"]),
-  );
-
-  Map<String, dynamic> toJson() => {
-    "id": id,
-    "user_id": userId,
-    "question_id": questionId,
-    "mcq": mcq,
-    "created_at": createdAt.toIso8601String(),
-    "users": users?.toJson(),
-  };
+TotalMcqs totalMcqsFromJson(String str) => TotalMcqs.fromJson(json.decode(str));
+String totalMcqsToJson(TotalMcqs data) => json.encode(data.toJson());
+class TotalMcqs {
+  TotalMcqs({
+      McqTitle? mcqTitle, 
+      num? count,}){
+    _mcqTitle = mcqTitle;
+    _count = count;
 }
 
-class Users {
-  int id;
-  String email;
-  DateTime createdAt;
+  TotalMcqs.fromJson(dynamic json) {
+    _mcqTitle = json['mcqTitle'] != null ? McqTitle.fromJson(json['mcqTitle']) : null;
+    _count = json['count'];
+  }
+  McqTitle? _mcqTitle;
+  num? _count;
+TotalMcqs copyWith({  McqTitle? mcqTitle,
+  num? count,
+}) => TotalMcqs(  mcqTitle: mcqTitle ?? _mcqTitle,
+  count: count ?? _count,
+);
+  McqTitle? get mcqTitle => _mcqTitle;
+  num? get count => _count;
 
-  Users({
-    required this.id,
-    required this.email,
-    required this.createdAt,
-  });
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{};
+    if (_mcqTitle != null) {
+      map['mcqTitle'] = _mcqTitle?.toJson();
+    }
+    map['count'] = _count;
+    return map;
+  }
 
-  factory Users.fromJson(Map<String, dynamic> json) => Users(
-    id: json["id"],
-    email: json["email"],
-    createdAt: DateTime.parse(json["created_at"]),
-  );
+}
 
-  Map<String, dynamic> toJson() => {
-    "id": id,
-    "email": email,
-    "created_at": createdAt.toIso8601String(),
-  };
+/// a : "Finding meaning and purpose in life"
+
+class McqTitle {
+  final Map<String, String> options;
+
+  McqTitle({required this.options});
+
+  factory McqTitle.fromJson(Map<String, dynamic> json) {
+    return McqTitle(
+      options: Map<String, String>.from(json.map((key, value) => MapEntry(key, value.toString()))),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return options;
+  }
+
+  /// Get the first key in the options map
+  String? get key => options.keys.isNotEmpty ? options.keys.first : null;
+
+  /// Get the first value in the options map
+  String? get value => options.values.isNotEmpty ? options.values.first : null;
 }

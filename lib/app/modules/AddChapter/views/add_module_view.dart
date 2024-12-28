@@ -1,5 +1,4 @@
 import 'dart:async'; // Import this to use Timer
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:soul_sage_web/app/data/components/app_color.dart';
 import '../controllers/add_chapter_controller.dart';
 import '../controllers/add_module_controller.dart';
-import 'add_chapter_view.dart';
 
 class AddModuleView extends GetView<AddModuleController> {
   AddModuleView({super.key});
@@ -122,8 +120,9 @@ class AddModuleView extends GetView<AddModuleController> {
               ),
               SizedBox(height: 2.h),
               // HTML Editor
-              Expanded(
+              SingleChildScrollView(
                 child: Container(
+                  height: Get.height * 0.4,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColors.appColor),
@@ -149,7 +148,6 @@ class AddModuleView extends GetView<AddModuleController> {
                       hint: "Your text here...",
                       initialText: controller.moduleInstruction.value,
                       shouldEnsureVisible: true,
-
                     ),
                   ),
                 ),
@@ -185,14 +183,7 @@ class AddModuleView extends GetView<AddModuleController> {
                   GestureDetector(
                     onTap: () async {
                       if (controller.isModuleEdit.isFalse) {
-                        await controller.addModule().then(
-                          (value) {
-                            if (value.statusCode == 200) {
-                              Get.back();
-                              Get.find<AddChapterController>().fetchChapter();
-                            }
-                          },
-                        );
+                        await controller.addModule(controller.nameText.text);
                       } else {
                         await controller.editModule().then(
                           (value) {

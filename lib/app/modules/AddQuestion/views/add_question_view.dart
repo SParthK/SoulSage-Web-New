@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -69,23 +71,26 @@ class AddQuestionView extends GetView<AddQuestionController> {
                   ],
                 ),
                 SizedBox(height: 2.h),
-
                 // User Data Table
-                if (controller.questionList.isNotEmpty)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: MediaQuery.of(context).size.width / 1.5,
-                        ),
-                        child: DataTable(
-                          columns: _buildTableColumns(controller),
-                          rows: _buildTableRows(controller, context),
-                        ),
-                      ),
-                    ),
-                  ),
+                Obx(
+                  () => controller.questionList.isNotEmpty
+                      ? Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.vertical,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth:
+                                    MediaQuery.of(context).size.width / 1.5,
+                              ),
+                              child: DataTable(
+                                columns: _buildTableColumns(controller),
+                                rows: _buildTableRows(controller, context),
+                              ),
+                            ),
+                          ),
+                        )
+                      : SizedBox.shrink(),
+                )
               ],
             ),
           );
@@ -186,9 +191,7 @@ class AddQuestionView extends GetView<AddQuestionController> {
                     animType: AnimType.rightSlide,
                     title: 'are you sure you want to delete.',
                     desc: '',
-                    btnCancelOnPress: () {
-
-                    },
+                    btnCancelOnPress: () {},
                     btnOkOnPress: () {
                       controller.deleteQuestion(question["questionId"]);
                     },
@@ -204,11 +207,18 @@ class AddQuestionView extends GetView<AddQuestionController> {
             DataCell(
               InkWell(
                 onTap: () {
-                  controller.fetchQuetionsAnalysis(question["questionId"]).then(
+                  controller.fetchQuestionAnalysis(question["questionId"]).then(
                     (value) {
                       Get.defaultDialog(
                           title: "",
-                          content: Questionanalysis(),
+                          content: QuestionAnalysis(
+                            questionId: controller.analysisData.isEmpty
+                                ? 0
+                                : controller.analysisData.first["id"],
+                            totalUser: controller.analysisData.isEmpty
+                                ? 0
+                                : controller.analysisData.first["totalUser"],
+                          ),
                           backgroundColor: AppColors.appWhite);
                     },
                   );
@@ -271,11 +281,18 @@ class AddQuestionView extends GetView<AddQuestionController> {
             DataCell(
               InkWell(
                 onTap: () {
-                  controller.fetchQuetionsAnalysis(question["questionId"]).then(
+                  controller.fetchQuestionAnalysis(question["questionId"]).then(
                     (value) {
                       Get.defaultDialog(
                           title: "",
-                          content: Questionanalysis(),
+                          content: QuestionAnalysis(
+                            questionId: controller.analysisData.isEmpty
+                                ? 0
+                                : controller.analysisData.first["id"],
+                            totalUser: controller.analysisData.isEmpty
+                                ? 0
+                                : controller.analysisData.first["totalUser"],
+                          ),
                           backgroundColor: AppColors.appWhite);
                     },
                   );

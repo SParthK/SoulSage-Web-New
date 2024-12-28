@@ -1,15 +1,20 @@
+import 'dart:developer';
 import 'dart:html' as html;
 import 'dart:typed_data';
 
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
 import 'package:sizer/sizer.dart';
+import 'package:soul_sage_web/app/data/model/response/chapter_list_response.dart';
+import 'package:soul_sage_web/app/data/model/response/module_list_response.dart';
 import '../../../data/components/app_color.dart';
 import '../../../data/components/app_icons_path.dart';
+import '../../../widget/common/common_dropdown.dart';
 import '../controllers/add_chapter_controller.dart';
 import '../controllers/add_module_controller.dart';
 import 'add_module_view.dart';
@@ -215,6 +220,17 @@ class AddChapterView extends GetView<AddChapterController> {
                       )
                     ],
                   ),
+                  CommonDropdown(
+                    selectedValue: '',
+                    itemList: [],
+                    customHeightList: [],
+                    onChangeItem: (selectValue) {},
+                    hintText: '',
+                    titleStyle: GoogleFonts.poppins(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
                 ],
               ),
               SizedBox(
@@ -230,8 +246,9 @@ class AddChapterView extends GetView<AddChapterController> {
               SizedBox(
                 height: 2.h,
               ),
-              Expanded(
+              SingleChildScrollView(
                 child: Container(
+                  height: Get.height * 0.35,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColors.appColor),
@@ -266,9 +283,9 @@ class AddChapterView extends GetView<AddChapterController> {
       }),
       textConfirm: 'Add',
       textCancel: 'Cancel',
-      onConfirm: () {
+      onConfirm: () async {
         if (nameController.text.isNotEmpty) {
-          chapterController.addChapter(
+          await chapterController.addChapter(
               nameController.text, chapterController.selectedOption.value);
           _resetFields(chapterController, nameController);
           Get.back();
@@ -295,16 +312,16 @@ class AddChapterView extends GetView<AddChapterController> {
     List<Widget> rows = [];
     if (controller.filteredChapters.isNotEmpty) {
       for (var i = 0; i < controller.filteredChapters.length; i++) {
-        ChapterDataset chapter = controller.filteredChapters[i];
+        ChapterListResponse chapter = controller.filteredChapters[i];
         rows.add(
             _buildChapterRow(context, i, chapter, controller.isExpanded(i)));
 
         // If the chapter is expanded, show its modules
         if (controller.isExpanded(i)) {
-          for (var j = 0; j < chapter.modules.length; j++) {
+          for (var j = 0; j < controller.chapterModule.length; j++) {
             rows.add(
-              _buildModuleRow(context, i, chapter.modules[j],
-                  controller.filteredChapters[i]),
+              _buildModuleRow(context, i, controller.chapterModule[j],
+                  controller.chapters[i]),
             );
           }
 
@@ -314,8 +331,13 @@ class AddChapterView extends GetView<AddChapterController> {
               padding: EdgeInsets.only(left: 5.w),
               child: GestureDetector(
                 onTap: () {
-                  Get.put(AddModuleController()).chapterId.value =
-                      controller.chapters[i].chapterId.toString();
+                  final addModuleController = Get.put(AddModuleController());
+                  addModuleController.resetEditor();
+                  addModuleController.chapterId.value =
+                      (controller.chapters[i].id ?? 0).toInt();
+                  addModuleController.moduleNexIndex.value =
+                      controller.chapterModule.length;
+                  addModuleController.isModuleEdit.value = false;
                   Get.dialog(AddModuleView());
                 },
                 child: Container(
@@ -339,16 +361,16 @@ class AddChapterView extends GetView<AddChapterController> {
       }
     } else {
       for (var i = 0; i < controller.chapters.length; i++) {
-        ChapterDataset chapter = controller.chapters[i];
+        ChapterListResponse chapter = controller.chapters[i];
         rows.add(
             _buildChapterRow(context, i, chapter, controller.isExpanded(i)));
 
         // If the chapter is expanded, show its modules
         if (controller.isExpanded(i)) {
-          for (var j = 0; j < chapter.modules.length; j++) {
+          for (var j = 0; j < controller.chapterModule.length; j++) {
             rows.add(
-              _buildModuleRow(
-                  context, i, chapter.modules[j], controller.chapters[i]),
+              _buildModuleRow(context, i, controller.chapterModule[j],
+                  controller.chapters[i]),
             );
           }
 
@@ -358,8 +380,13 @@ class AddChapterView extends GetView<AddChapterController> {
               padding: EdgeInsets.only(left: 5.w),
               child: GestureDetector(
                 onTap: () {
-                  Get.put(AddModuleController()).chapterId.value =
-                      controller.chapters[i].chapterId.toString();
+                  final addModuleController = Get.put(AddModuleController());
+                  addModuleController.resetEditor();
+                  addModuleController.chapterId.value =
+                      (controller.chapters[i].id ?? 0).toInt();
+                  addModuleController.moduleNexIndex.value =
+                      controller.chapterModule.length;
+                  addModuleController.isModuleEdit.value = false;
                   Get.dialog(AddModuleView());
                 },
                 child: Container(
@@ -388,7 +415,7 @@ class AddChapterView extends GetView<AddChapterController> {
 
   // Build the chapter row
   Widget _buildChapterRow(BuildContext context, int index,
-      ChapterDataset chapter, bool isExpanded) {
+      ChapterListResponse chapter, bool isExpanded) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: GestureDetector(
@@ -412,7 +439,8 @@ class AddChapterView extends GetView<AddChapterController> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${chapter.number}. ',
+                // '${chapter.number}. ',
+                '${index + 1} ',
                 style: GoogleFonts.poppins(fontSize: 12.sp),
               ),
               SizedBox(
@@ -420,12 +448,18 @@ class AddChapterView extends GetView<AddChapterController> {
               ),
               Expanded(
                 child: Text(
-                  chapter.name,
+                  chapter.chapterLanguage
+                          ?.firstWhere(
+                            (element) => element.languageType == "EN",
+                          )
+                          .name ??
+                      "NA",
                   style: GoogleFonts.poppins(fontSize: 12.sp),
                 ),
               ),
               Text(
-                'CH-${chapter.number}, M-${chapter.modules.length}',
+                'CH-${index + 1}, M-${(chapter.chapterModule ?? []).length}',
+                // 'Pending',
                 style: GoogleFonts.poppins(fontSize: 12.sp),
               ),
               SizedBox(
@@ -440,8 +474,9 @@ class AddChapterView extends GetView<AddChapterController> {
                       height: 13.sp,
                     ),
                     onPressed: () {
-                      chapterController.selectedOption.value = chapter.isFree;
-                      chapterController.imageLink.value = chapter.chapterImage;
+                      chapterController.selectedOption.value =
+                          chapter.isFree == true ? 1 : 0;
+                      chapterController.imageLink.value = chapter.picture ?? "";
 
                       chapterController.update();
                       chapterController.showEditChapterDialog(
@@ -464,9 +499,10 @@ class AddChapterView extends GetView<AddChapterController> {
                         desc: '',
                         btnCancelOnPress: () {},
                         btnOkOnPress: () {
-                          chapterController.deleteChapter(chapter.chapterId);
+                          chapterController
+                              .deleteChapter((chapter.id ?? 0).toInt());
                         },
-                      )..show();
+                      ).show();
                     },
                   ),
                   SizedBox(
@@ -483,7 +519,7 @@ class AddChapterView extends GetView<AddChapterController> {
 
   // Build the module row
   Widget _buildModuleRow(BuildContext context, int index,
-      ModuleDataset modulesInfo, ChapterDataset chapterData) {
+      ModuleListResponse modulesInfo, ChapterListResponse chapterData) {
     return Padding(
       padding: const EdgeInsets.only(left: 30.0, right: 8, top: 8, bottom: 8),
       child: Container(
@@ -503,7 +539,7 @@ class AddChapterView extends GetView<AddChapterController> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              modulesInfo.moduleId,
+              ((modulesInfo.moduleIndex ?? 0) + 1).toString(),
               style: GoogleFonts.poppins(fontSize: 12.sp),
             ),
             SizedBox(
@@ -511,7 +547,12 @@ class AddChapterView extends GetView<AddChapterController> {
             ),
             Expanded(
               child: Text(
-                modulesInfo.moduleName,
+                modulesInfo.moduleLanguage
+                        ?.firstWhere(
+                          (element) => element.languageType == "EN",
+                        )
+                        .name ??
+                    "",
                 style: GoogleFonts.poppins(fontSize: 12.sp),
               ),
             ),
@@ -531,23 +572,45 @@ class AddChapterView extends GetView<AddChapterController> {
                         Get.put(AddModuleController());
 
                     addModuleController.chapterId.value =
-                        controller.chapters[index].chapterId.toString();
+                        (controller.chapters[index].chapterLanguage
+                                    ?.firstWhere(
+                                      (element) => element.languageType == "EN",
+                                    )
+                                    .chapterId ??
+                                0)
+                            .toInt();
 
                     addModuleController.nameText.text =
-                        modulesInfo.moduleName.toString();
+                        modulesInfo.moduleLanguage
+                                ?.firstWhere(
+                                  (element) => element.languageType == "EN",
+                                )
+                                .name ??
+                            "";
                     addModuleController.moduleId.value =
-                        modulesInfo.moduleId.toString();
+                        (modulesInfo.moduleLanguage
+                                    ?.firstWhere(
+                                      (element) => element.languageType == "EN",
+                                    )
+                                    .id ??
+                                0)
+                            .toString();
 
                     addModuleController.isModuleEdit.value = true;
 
                     addModuleController.moduleInstruction.value =
-                        modulesInfo.moduleDescription;
+                        modulesInfo.moduleLanguage
+                                ?.firstWhere(
+                                  (element) => element.languageType == "EN",
+                                )
+                                .description ??
+                            "";
 
                     addModuleController.imageLink.value =
-                        modulesInfo.moduleImage;
+                        modulesInfo.picture ?? "";
 
-                    print(
-                        "modulesInfo.moduleDescription${modulesInfo.moduleDescription}");
+                    // print(
+                    //     "modulesInfo.moduleDescription${modulesInfo.moduleDescription}");
                     addModuleController.update();
 
                     Get.dialog(AddModuleView());
@@ -564,7 +627,7 @@ class AddChapterView extends GetView<AddChapterController> {
                         Get.put(AddModuleController());
 
                     addModuleController.moduleId.value =
-                        modulesInfo.moduleId.toString();
+                        (modulesInfo.id ?? 0).toString();
 
                     AwesomeDialog(
                       width: Get.width / 3,

@@ -1,8 +1,11 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sizer/sizer.dart';
 import '../../../data/components/app_color.dart';
+import '../../UserManagement/bindings/user_management_binding.dart';
+import '../../UserManagement/controllers/user_management_controller.dart';
 
 class DashboardController extends GetxController {
   var selectedPage = 0.obs;
@@ -14,11 +17,25 @@ class DashboardController extends GetxController {
     'Subscription Details'
   ];
 
-
   TextEditingController searchField = TextEditingController();
 
-  void changePage(int index) {
+  @override
+  void onInit() {
+    // TODO: implement onInit
+    super.onInit();
+    changePage(0);
+  }
+
+  void changePage(int index) async {
+    log("message-==-----S");
+    if (index == 0) {
+      Get.lazyPut<UserManagementController>(
+        () => UserManagementController(),
+      );
+      await Get.find<UserManagementController>().getUserList();
+    }
     selectedPage.value = index;
+    update();
   }
 
   Widget SideBarButton(

@@ -1,33 +1,52 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:sizer/sizer.dart';
 import 'package:soul_sage_web/app/data/api_service/config.dart';
 import 'package:soul_sage_web/app/data/components/app_color.dart';
 import 'package:soul_sage_web/app/data/components/constants.dart';
+import 'package:soul_sage_web/app/data/get_storage/get_storage.dart';
+import 'package:soul_sage_web/app/data/repository/user_mange_repository.dart';
 
-import '../../../data/api_response_model/user_list_model.dart';
+import '../../../../utils/app_utils.dart';
+
+import '../../../data/model/response/user_response.dart';
 import '../views/user_details_pop_up.dart';
 
 class UserManagementController extends GetxController {
   // Ensure this is initialized to avoid null issues
-  List<User> users = <User>[].obs;
-  List<User> filteredUsers = <User>[].obs; // For storing filtered results
+  final UserMangeRepository _userMangeRepository = UserMangeRepository();
+
+  // List<User> users = <User>[].obs;
+  // List<User> filteredUsers = <User>[].obs;
+  RxBool isLoading = false.obs;
+  RxBool isMaxScrolled = false.obs;
+  RxList<UserList> users = <UserList>[].obs;
+  RxList<UserList> filteredUsers =
+      <UserList>[].obs; // For storing filtered results
   RxString searchQuery = ''.obs;
   final TextEditingController exactDateController = TextEditingController();
   final TextEditingController startDateController = TextEditingController();
   final TextEditingController endDateController = TextEditingController();
   RxBool isSubscribed = false.obs; // For zsubscription filter
   RxBool isFilterTrue = false.obs; // For subscription filter
+  RefreshController refreshController =
+      RefreshController(initialRefresh: false);
+  RxInt userListPageNumber = 1.obs;
+  RxInt userListMaxPageNumber = 0.obs;
+  Map<String, dynamic> userData = {};
 
   @override
   void onInit() {
+    // TODO: implement onInit
     super.onInit();
-    fetchUsers();
+    getUserList();
   }
-
-  Map<String, dynamic> userData = {};
 
   // Function to trigger the popup
   void showStatisticsDialog() {
@@ -37,18 +56,149 @@ class UserManagementController extends GetxController {
     );
   }
 
-  // Fetch or set user data
-  void fetchUsers() {
-    apiCall.getAPICall(APIConstant.userList,
-        header: {"Authorization": "Bearer ${userModel?.token}"}).then(
-      (value) {
-        print("value.data");
-        UserList userList = UserList.fromJson(value.data);
-        users = userList.users;
-        update();
-      },
-    );
+  onAddUserSubscription(
+      {required String name,
+      required int userId,
+      required int durationInDay}) async {
+    await EasyLoading.show();
+    try {
+      final response = await _userMangeRepository.userSubscription(userData: {
+        "name": name,
+        "user_id": userId,
+        "price": "0",
+        "duration": durationInDay
+      });
+      if (response.data?.success == true) {
+        Get.back();
+        await getUserList();
+      } else {
+        AppUtils.showToast(msg: response.data?.message ?? "");
+      }
+    } catch (e) {
+      AppUtils.showToast(msg: "Something went wrong.");
+    } finally {
+      await EasyLoading.dismiss();
+    }
   }
+
+  onChangeChapterAccessTime({required int userId}) async {
+    await EasyLoading.show();
+    try {
+      final response =
+          await _userMangeRepository.unlockChapterTimer(userId: userId);
+      if (response.data?.success == true) {
+        Get.back();
+        await getUserList();
+      } else {
+        AppUtils.showToast(msg: response.data?.message ?? "");
+      }
+    } catch (e) {
+      AppUtils.showToast(msg: "Something went wrong.");
+    } finally {
+      await EasyLoading.dismiss();
+    }
+  }
+
+  onUserDelete({required int userId}) async {
+    await EasyLoading.show();
+    try {
+      final response = await _userMangeRepository.deleteUser(userId: userId);
+      if (response.data?.success == true) {
+        await getUserList();
+      } else {
+        AppUtils.showToast(msg: response.data?.message ?? "");
+      }
+    } catch (e) {
+      AppUtils.showToast(msg: "Something went wrong.");
+    } finally {
+      await EasyLoading.dismiss();
+    }
+  }
+
+  getUserList() async {
+    users.clear();
+    isLoading.value = true;
+    await EasyLoading.show();
+    try {
+      final response = await _userMangeRepository.getUserList(
+        pageNo: userListPageNumber.value,
+      );
+      if (response.data?.success == true && response.data?.data != null) {
+        UserResponse userList = UserResponse.fromJson(response.data?.data);
+        users.value = userList.userList ?? <UserList>[];
+        userListMaxPageNumber.value =
+            int.parse("${userList.metaData?.totalPage ?? 0}");
+        userListPageNumber.value = int.parse("${userList.metaData?.page ?? 0}");
+      } else {
+        AppUtils.showToast(msg: response.data?.message ?? '');
+      }
+    } catch (e) {
+      print("ERROR on getVehicleInspectionList ${e}");
+      // AppUtils.showToast(msg: 'Something went Wrong...');
+    } finally {
+      isLoading.value = false;
+      users.refresh();
+      update();
+      await EasyLoading.dismiss();
+    }
+  }
+
+  // getOtherPageUserList() async {
+  //   await Future.delayed(Duration(milliseconds: 100));
+  //   if (userListPageNumber.value <=
+  //       userListMaxPageNumber.value &&
+  //       userListPageNumber.value != 1) {
+  //     isMaxScrolled.value = true;
+  //     try {
+  //       final response = await _userMangeRepository.getUserList(
+  //         pageNo: userListPageNumber.value,
+  //       );
+  //       if (response.data?.success == true && response.data?.data != null) {
+  //         UserResponse userList = UserResponse.fromJson(response.data?.data);
+  //         users.value = userList.userList ?? <UserList>[];
+  //         userListMaxPageNumber.value =
+  //             int.parse("${userList.metaData?.totalPage ?? 0}");
+  //         if (userListMaxPageNumber.value >= userListPageNumber.value) {
+  //           log("message---3--[[] ${userListPageNumber.value}");
+  //           userListPageNumber.value++;
+  //         }
+  //       } else {
+  //         AppUtils.showToast(msg: response.data?.message ?? '');
+  //       }
+  //     } catch (e) {
+  //       print("ERROR on getVehicleInspectionList ${e}");
+  //       // AppUtils.showToast(msg: 'Something went Wrong...');
+  //     } finally {
+  //       isMaxScrolled.value = false;
+  //     }
+  //   }
+  // }
+
+  // Fetch or set user data
+  // fetchUsers() async {
+  //   try {
+  //     isLoading.value = true;
+  //     await EasyLoading.show();
+  //     final response = await _userMangeRepository.getUserList();
+  //     if (response.data?.success == true && response.data?.data != null) {
+  //       UserResponse userList = UserResponse.fromJson(response.data?.data);
+  //       // List<UserResponse> userList = [];
+  //       // for (var i = 0; i < (response.data?.data).length; i++) {
+  //       //   userList.add(UserResponse.fromJson(response.data?.data[i]));
+  //       // }
+  //       users.value = userList.userList ?? <UserList>[];
+  //     } else {
+  //       AppUtils.showToast(msg: response.data?.message ?? '');
+  //     }
+  //   } catch (e) {
+  //     log("message-=----$e");
+  //   } finally {
+  //     isLoading.value = false;
+  //     users.refresh();
+  //     update();
+  //     await EasyLoading.dismiss();
+  //   }
+  // }
 
   // Table header text style
   TextStyle tableHeaderStyle() {
@@ -71,11 +221,12 @@ class UserManagementController extends GetxController {
     if (query.isEmpty) {
       filteredUsers = users; // Show all users when search is empty
     } else {
-      filteredUsers = users
-          .where(
-              (user) => user.email.toLowerCase().contains(query.toLowerCase()))
+      filteredUsers.value = users
+          .where((user) =>
+              (user.email ?? "").toLowerCase().startsWith(query.toLowerCase()))
           .toList();
     }
+    filteredUsers.refresh();
     update(); // Refresh the UI with filtered results
   }
 
@@ -88,23 +239,24 @@ class UserManagementController extends GetxController {
     DateTime? endFilterDate =
         endDate.isNotEmpty ? DateTime.tryParse(endDate) : null;
 
-    filteredUsers = users.where((user) {
+    filteredUsers.value = users.where((user) {
       // Check the exact date filter
       bool matchesExactDate = exactFilterDate == null ||
-          (user.createdAt.year == exactFilterDate.year &&
-              user.createdAt.month == exactFilterDate.month &&
-              user.createdAt.day == exactFilterDate.day);
+          (user.createdAt.toDateTime().year == exactFilterDate.year &&
+              user.createdAt.toDateTime().month == exactFilterDate.month &&
+              user.createdAt.toDateTime().day == exactFilterDate.day);
 
       // Check the subscription filter, if provided
       bool matchesSubscription = hasSubscription == null ||
           (hasSubscription
-              ? user.currentSubscription != 0
-              : user.currentSubscription == 0);
+              ? user.currentSubscription != false
+              : user.currentSubscription == false);
 
       // Check the date range filter
       bool matchesDateRange = (startFilterDate == null ||
-              user.createdAt.isAfter(startFilterDate)) &&
-          (endFilterDate == null || user.createdAt.isBefore(endFilterDate));
+              user.createdAt.toDateTime().isAfter(startFilterDate)) &&
+          (endFilterDate == null ||
+              user.createdAt.toDateTime().isBefore(endFilterDate));
 
       // Combine all filters
       return matchesExactDate && matchesSubscription && matchesDateRange;

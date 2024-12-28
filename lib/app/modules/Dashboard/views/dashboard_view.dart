@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -110,35 +112,35 @@ class DashboardView extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  if(controller.selectedPage.value == 0)
-                  GestureDetector(
-                    onTap: () {
-                      if (controller.selectedPage.value == 0) {
-                        UserManagementController userManagementController =
-                            Get.put(UserManagementController());
-                        userManagementController.isFilterTrue.value == true;
+                  if (controller.selectedPage.value == 0)
+                    GestureDetector(
+                      onTap: () {
+                        if (controller.selectedPage.value == 0) {
+                          UserManagementController userManagementController =
+                              Get.put(UserManagementController());
+                          userManagementController.isFilterTrue.value == true;
 
-                        userManagementController.update();
+                          userManagementController.update();
 
-                        userManagementController.showFilterDialog(context);
-                      }
-                    },
-                    child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Color(0xFF5A00FF),
+                          userManagementController.showFilterDialog(context);
+                        }
+                      },
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Color(0xFF5A00FF),
+                          ),
+                        ),
+                        child: Text(
+                          "Filters",
+                          style: TextStyle(
+                              color: Color(0xFF5A00FF), fontSize: 12.sp),
                         ),
                       ),
-                      child: Text(
-                        "Filters",
-                        style: TextStyle(
-                            color: Color(0xFF5A00FF), fontSize: 12.sp),
-                      ),
                     ),
-                  ),
                   SizedBox(
                     width: 1.w,
                   ),
@@ -227,8 +229,7 @@ class DashboardView extends StatelessWidget {
 
                       return GestureDetector(
                         onTap: () {
-                          dashboardController.selectedPage.value = index;
-                          dashboardController.update();
+                          dashboardController.changePage(index);
                         },
                         child: Padding(
                           padding: EdgeInsets.symmetric(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -8,16 +9,19 @@ import 'package:sizer/sizer.dart';
 import 'package:soul_sage_web/app/data/api_service/config.dart';
 import 'package:soul_sage_web/app/data/components/constants.dart';
 import 'package:soul_sage_web/app/modules/UserManagement/controllers/user_management_controller.dart';
+import 'package:soul_sage_web/utils/app_color.dart';
+import 'package:soul_sage_web/utils/dimens.dart';
 
 class UserStatisticsPopup extends GetView<UserManagementController> {
   @override
   Widget build(BuildContext context) {
     final user = controller.userData;
+    log("message-=---- ${user["subscription"]}");
 
     return GetBuilder(
         builder: (UserManagementController userManagementController) {
       return Container(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12.sp),
         ),
@@ -38,21 +42,25 @@ class UserStatisticsPopup extends GetView<UserManagementController> {
                 if (user["subscription"] != true)
                   ElevatedButton(
                     onPressed: () async {
-                      await EasyLoading.show();
-                      var data = json.encode(
-                          {"subscription_id": "7", "user_id": user["id"]});
-                      apiCall.postAPICall(
-                          url: APIConstant.unlockSubscription,
-                          data: data,
-                          header: {
-                            "Authorization": "Bearer ${userModel?.token}"
-                          }).then(
-                        (value) async {
-                          Get.back();
-                          await EasyLoading.dismiss();
-                          userManagementController.fetchUsers();
-                        },
+                      DateTime today = DateTime.now();
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: today,
+                        firstDate: today,
+                        lastDate: DateTime(
+                            today.year + 5), // Limit to 5 years in the future
                       );
+
+                      if (pickedDate != null) {
+                        int dayCount = pickedDate.difference(today).inDays;
+                        controller.onAddUserSubscription(
+                          userId: user["id"],
+                          name: user["name"],
+                          durationInDay: dayCount,
+                        );
+                      } else {
+                        EasyLoading.showToast("Please future date.");
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5A00FF),
@@ -61,30 +69,18 @@ class UserStatisticsPopup extends GetView<UserManagementController> {
                       ),
                     ),
                     child: Text(
-                      'Unlock',
+                      'Unlock subscription',
                       style: GoogleFonts.poppins(
                         fontSize: 10.sp,
                         color: Colors.white,
                       ),
                     ),
                   ),
-                if (user["chapterAccess"] == 0)
+                if (user["chapterAccess"] == false)
                   ElevatedButton(
                     onPressed: () async {
-                      await EasyLoading.show();
-                      var data = json.encode({"user_id": user["id"]});
-                      apiCall.postAPICall(
-                          url: APIConstant.userEditAccess,
-                          data: data,
-                          header: {
-                            "Authorization": "Bearer ${userModel?.token}"
-                          }).then(
-                        (value) async {
-                          Get.back();
-                          await EasyLoading.dismiss();
-                          userManagementController.fetchUsers();
-                        },
-                      );
+                      await controller.onChangeChapterAccessTime(
+                          userId: user["id"]);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5A00FF),
@@ -103,9 +99,8 @@ class UserStatisticsPopup extends GetView<UserManagementController> {
               ],
             ),
             SizedBox(height: 2.h),
-
             // Profile picture and name
-            Row(
+            /*Row(
               children: [
                 CircleAvatar(
                   radius: 20.sp,
@@ -121,9 +116,16 @@ class UserStatisticsPopup extends GetView<UserManagementController> {
                   ),
                 ),
               ],
+            ),*/
+            Text(
+              user['name'].toString(),
+              style: GoogleFonts.poppins(
+                fontSize: 14.sp,
+                color: AppColors.appPrimaryColorPurple,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 3.h),
-
+            SizedBox(height: 1.h),
             // Data details
             _buildUserDetails(user),
           ],
@@ -183,6 +185,7 @@ class UserStatisticsPopup extends GetView<UserManagementController> {
               ],
             ),
           ),
+          Dimens.widthGap10,
           Expanded(
             child: Row(
               children: [

@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:get_it/get_it.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:sizer/sizer.dart';
 
+import 'app/app_bindings.dart';
 import 'app/data/api_service/api_provider.dart';
 import 'app/data/api_service/config.dart';
 import 'app/data/components/Helpers/shared_pref_helper.dart';
@@ -35,6 +37,7 @@ void setupDependencies() {
 }
 
 Future<void> _initializeApp() async {
+  await GetStorage.init();
   await getCurrentUser();
   await fetchInitialRoute();
 }
@@ -45,10 +48,13 @@ class MyApp extends StatelessWidget {
     return Sizer(
       builder: (context, orientation, screenType) {
         return GetMaterialApp(
+          debugShowCheckedModeBanner: false,
           title: "Application",
           initialRoute: AppPages.INITIAL,
           getPages: AppPages.routes,
-          builder: EasyLoading.init(), // Integrating EasyLoading globally
+          builder: EasyLoading.init(),
+          // Integrating EasyLoading globally
+          initialBinding: AppBinding(),
         );
       },
     );
@@ -58,7 +64,8 @@ class MyApp extends StatelessWidget {
 Future<void> fetchInitialRoute() async {
   log("Fetching Initial Route");
 
-  final bool isLoggedIn = await sl<SharedPref>().get(SharedPref.isLogin, defaultValue: false);
+  final bool isLoggedIn =
+      await sl<SharedPref>().get(SharedPref.isLogin, defaultValue: false);
 
   if (isLoggedIn) {
     AppPages.INITIAL = Routes.DASHBOARD;
